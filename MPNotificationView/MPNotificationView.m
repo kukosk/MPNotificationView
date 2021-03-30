@@ -15,14 +15,37 @@
 
 static NSMutableDictionary * _registeredTypes;
 
+static CGFloat deviceTopSafeAreaInset() {
+    UIApplication *app = [UIApplication sharedApplication];
+    UIInterfaceOrientation statusBarOrientation = [app statusBarOrientation];
+    UIEdgeInsets safeAreaInsets = UIEdgeInsetsZero;
+
+    if(@available(iOS 11.0, *)) {
+        safeAreaInsets = app.delegate.window.safeAreaInsets;
+    }
+
+    switch (statusBarOrientation) {
+        case UIInterfaceOrientationPortrait:
+            return safeAreaInsets.top;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            return safeAreaInsets.bottom;
+        case UIInterfaceOrientationLandscapeRight:
+            return safeAreaInsets.left;
+        case UIInterfaceOrientationLandscapeLeft:
+            return safeAreaInsets.right;
+        case UIInterfaceOrientationUnknown:
+            return 0;
+    }
+}
+
 static CGRect notificationRect()
 {
     if (UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation]))
     {
-        return CGRectMake(0.0f, 0.0f, [UIScreen mainScreen].bounds.size.height, kMPNotificationHeight);
+        return CGRectMake(0.0f, deviceTopSafeAreaInset(), [UIScreen mainScreen].bounds.size.height, kMPNotificationHeight);
     }
     
-    return CGRectMake(0.0f, 0.0f, [UIScreen mainScreen].bounds.size.width, kMPNotificationHeight);
+    return CGRectMake(0.0f, deviceTopSafeAreaInset(), [UIScreen mainScreen].bounds.size.width, kMPNotificationHeight);
 }
 
 NSString *kMPNotificationViewTapReceivedNotification = @"kMPNotificationViewTapReceivedNotification";
@@ -51,18 +74,7 @@ NSString *kMPNotificationViewTapReceivedNotification = @"kMPNotificationViewTapR
         self.windowLevel = UIWindowLevelStatusBar + 1;
         self.backgroundColor = [UIColor clearColor];
         _notificationQueue = [[NSMutableArray alloc] initWithCapacity:4];
-        
-        UIView *topHalfBlackView = [[UIView alloc] initWithFrame:CGRectMake(CGRectGetMinX(frame),
-                                                                            CGRectGetMinY(frame),
-                                                                            CGRectGetWidth(frame),
-                                                                            0.5 * CGRectGetHeight(frame))];
-        
-        topHalfBlackView.backgroundColor = [UIColor blackColor];
-        topHalfBlackView.layer.zPosition = -100;
-        topHalfBlackView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        
-        [self addSubview:topHalfBlackView];
-        
+
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(willRotateScreen:)
                                                      name:UIApplicationWillChangeStatusBarFrameNotification
